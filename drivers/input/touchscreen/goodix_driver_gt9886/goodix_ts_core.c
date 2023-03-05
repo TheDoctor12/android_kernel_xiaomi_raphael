@@ -1740,7 +1740,7 @@ int goodix_ts_esd_init(struct goodix_ts_core *core)
  * goodix_ts_suspend - Touchscreen suspend function
  * Called by PM/FB/EARLYSUSPEN module to put the device to  sleep
  */
-int goodix_ts_suspend(struct goodix_ts_core *core_data)
+int goodix_ts_suspend_lock(struct goodix_ts_core *core_data, bool lock)
 {
 	struct goodix_ext_module *ext_module;
 	struct goodix_ts_device *ts_dev = core_data->ts_dev;
@@ -1748,7 +1748,11 @@ int goodix_ts_suspend(struct goodix_ts_core *core_data)
 
 	ts_info("Suspend start");
 
-	mutex_lock(&core_data->work_stat);
+	if (lock) {
+		mutex_lock(&core_data->work_stat);
+		ts_info("locked work_stat mutex");
+	}
+
 	if (atomic_read(&core_data->suspend_stat)) {
 		ts_info("suspended, skip");
 		goto out;
@@ -1832,17 +1836,25 @@ out:
 	sysfs_notify(&core_data->gtp_touch_dev->kobj, NULL,
 		     "touch_suspend_notify");
 
-	mutex_unlock(&core_data->work_stat);
+	if (lock) {
+		ts_info("unlocking work_stat mutex");
+		mutex_unlock(&core_data->work_stat);
+	}
 
 	ts_info("Suspend end");
 	return 0;
+}
+
+int goodix_ts_suspend(struct goodix_ts_core *core_data)
+{
+	return goodix_ts_suspend_lock(core_data, true);
 }
 
 /**
  * goodix_ts_resume - Touchscreen resume function
  * Called by PM/FB/EARLYSUSPEN module to wakeup device
  */
-int goodix_ts_resume(struct goodix_ts_core *core_data)
+int goodix_ts_resume_lock(struct goodix_ts_core *core_data, bool lock)
 {
 	struct goodix_ext_module *ext_module;
 	struct goodix_ts_device *ts_dev = core_data->ts_dev;
@@ -1850,7 +1862,12 @@ int goodix_ts_resume(struct goodix_ts_core *core_data)
 
 	ts_info("Resume start");
 	/*goodix_ts_irq_enable(core_data, false);*/
-	mutex_lock(&core_data->work_stat);
+
+	if (lock) {
+		mutex_lock(&core_data->work_stat);
+		ts_info("locked work_stat mutex");
+	}
+
 	if (!atomic_read(&core_data->suspend_stat)) {
 		ts_info("resumed, skip");
 		/*goodix_ts_irq_enable(core_data, true);*/
@@ -1922,7 +1939,10 @@ out:
 	sysfs_notify(&core_data->gtp_touch_dev->kobj, NULL,
 		     "touch_suspend_notify");
 
-	mutex_unlock(&core_data->work_stat);
+	if (lock) {
+		ts_info("unlocking work_stat mutex");
+		mutex_unlock(&core_data->work_stat);
+	}
 
 #ifdef CONFIG_TOUCHSCREEN_GOODIX_GTX8_GAMEMODE
 	gtp_game_mode_rerun(core_data);
@@ -1930,6 +1950,11 @@ out:
 
 	ts_info("Resume end");
 	return 0;
+}
+
+int goodix_ts_resume(struct goodix_ts_core *core_data)
+{
+	return goodix_ts_resume_lock(core_data, true);
 }
 
 static int goodix_bl_state_chg_callback(struct notifier_block *nb, unsigned long val, void *data)
@@ -2242,6 +2267,7 @@ static int gtp_power_supply_event(struct notifier_block *nb, unsigned long event
 
 	return 0;
 }
+
 
 /**
  * goodix_ts_probe - called by kernel when a Goodix touch

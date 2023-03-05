@@ -111,6 +111,7 @@ gen_headers_out_arm = [
     "linux/affs_hardblocks.h",
     "linux/agpgart.h",
     "linux/aio_abi.h",
+    "linux/akm09970.h",
     "linux/am437x-vpfe.h",
     "linux/apm_bios.h",
     "linux/arcfb.h",
@@ -396,6 +397,7 @@ gen_headers_out_arm = [
     "linux/ncp_fs.h",
     "linux/ncp_mount.h",
     "linux/ncp_no.h",
+    "linux/ncsi.h",
     "linux/ndctl.h",
     "linux/neighbour.h",
     "linux/net.h",
@@ -630,6 +632,7 @@ gen_headers_out_arm = [
     "linux/watchdog.h",
     "linux/wil6210_uapi.h",
     "linux/wimax.h",
+    "linux/wireguard.h",
     "linux/wireless.h",
     "linux/x25.h",
     "linux/xattr.h",
@@ -672,7 +675,9 @@ gen_headers_out_arm = [
     "media/msmb_pproc.h",
     "media/radio-iris-commands.h",
     "media/radio-iris.h",
+    "misc/akm09970.h",
     "misc/cxl.h",
+    "misc/drv8846.h",
     "mtd/inftl-user.h",
     "mtd/mtd-abi.h",
     "mtd/mtd-user.h",
@@ -749,6 +754,7 @@ gen_headers_out_arm = [
     "linux/dvb/osd.h",
     "linux/dvb/version.h",
     "linux/dvb/video.h",
+    "linux/f2fs.h",
     "linux/genwqe/genwqe_card.h",
     "linux/hdlc/ioctl.h",
     "linux/hsi/cs-protocol.h",
@@ -996,7 +1002,10 @@ genrule {
 
 genrule {
     name: "qti_generate_kernel_headers_arm",
-    tools: ["headers_install.sh"],
+    tools: [
+        "headers_install.sh",
+        "unifdef",
+    ],
     tool_files: [
         "kernel_headers.py",
         "arch/arm/tools/syscallhdr.sh",
@@ -1020,6 +1029,7 @@ genrule {
         "--arch_syscall_tool $(location arch/arm/tools/syscallhdr.sh) " +
         "--arch_syscall_tbl $(location arch/arm/tools/syscall.tbl) " +
         "--headers_install $(location headers_install.sh) " +
+        "--unifdef $(location unifdef) " +
         "--include_uapi $(locations include/uapi/**/*.h)",
     out: ["linux/version.h"] + gen_headers_out_arm,
 }
